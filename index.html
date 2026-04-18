@@ -403,7 +403,10 @@
     <hr class="card-divider">
     <div class="card-def" id="cardDef"></div>
     <div id="cardExampleWrap" style="display:none">
-      <div class="card-example-label">例句</div>
+      <div class="card-example-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>例句</span>
+        <button class="btn-speak" id="btnSpeakEx" onclick="speakExample(event)" style="font-size:.75rem;padding:4px 10px;margin:0">🔊 朗讀例句</button>
+      </div>
       <div class="card-example" id="cardExample"></div>
     </div>
   </div>
@@ -2822,27 +2825,39 @@ function speakCurrent(e) {
   speakWord(e, filteredWords[currentIndex].word);
 }
 
-function speakWord(e, word) {
-  e.stopPropagation();
+function speakText(text, btn, rate) {
   if (!window.speechSynthesis) { showToast('您的瀏覽器不支援語音功能'); return; }
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(word);
+  const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
-  utt.rate = 0.85;
+  utt.rate = rate || 0.85;
   utt.pitch = 1;
-
-  // pick a good English voice
   const voices = window.speechSynthesis.getVoices();
   const enVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('samantha'))
     || voices.find(v => v.lang === 'en-US')
     || voices.find(v => v.lang.startsWith('en'));
   if (enVoice) utt.voice = enVoice;
-
-  const btn = e.currentTarget;
-  btn.classList.add('speaking');
-  utt.onend = () => btn.classList.remove('speaking');
-  utt.onerror = () => btn.classList.remove('speaking');
+  if (btn) {
+    btn.classList.add('speaking');
+    utt.onend = () => btn.classList.remove('speaking');
+    utt.onerror = () => btn.classList.remove('speaking');
+  }
   window.speechSynthesis.speak(utt);
+}
+
+function speakWord(e, word) {
+  e.stopPropagation();
+  speakText(word, e.currentTarget, 0.85);
+}
+
+function speakExample(e) {
+  e.stopPropagation();
+  if (filteredWords.length === 0) return;
+  // Strip HTML tags from example to get plain text
+  const raw = filteredWords[currentIndex].example || '';
+  const plain = raw.replace(/<[^>]+>/g, '');
+  if (!plain) { showToast('此單字無例句'); return; }
+  speakText(plain, e.currentTarget, 0.82);
 }
 
 // ─────────────────────────────────────────────
